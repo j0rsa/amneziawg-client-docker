@@ -1,7 +1,7 @@
 # -------------------------------
 # Build amneziawg-go
 # -------------------------------
-FROM golang:1.24.5 AS builder
+FROM golang:1.25 AS builder
 
 ARG TARGETARCH
 ARG TARGETVARIANT
