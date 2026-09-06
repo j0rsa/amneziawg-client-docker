@@ -1,6 +1,10 @@
 #!/bin/bash
 
-# clear existing configurations
+# Use amneziawg-go userspace implementation so no host kernel module is required
+export WG_QUICK_USERSPACE_IMPLEMENTATION=amneziawg-go
+
+# Ensure config directory exists, then clear any stale configurations
+mkdir -p /etc/amnezia/amneziawg
 find /etc/amnezia/amneziawg -mindepth 1 -delete
 
 COUNTER=0
@@ -11,7 +15,7 @@ do
     COUNTER=$(( COUNTER + 1 ))
     basename=$(basename ${s})
     name=${basename%.conf}
-    echo awg interface "${name}" will be created from config file "${basename}"
+    echo "awg interface '${name}' will be created from config file '${basename}'"
     cp ${s} /etc/amnezia/amneziawg/${name}.conf
     chmod 600 /etc/amnezia/amneziawg/${name}.conf
     awg-quick up ${name}
@@ -26,4 +30,4 @@ then
   echo "There are no config files in the /config folder"
 fi
 
-/bin/sh
+sleep infinity

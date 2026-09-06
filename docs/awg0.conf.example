@@ -1,0 +1,27 @@
+[Interface]
+PrivateKey = <your-private-key>
+Address = 10.9.9.6/32
+DNS = 1.1.1.1
+MTU = 1280
+
+# AmneziaWG obfuscation — copy exact values from your server config
+Jc = 3
+Jmin = 47
+Jmax = 225
+S1 = 142
+S2 = 24
+H1 = 1
+H2 = 2
+H3 = 3
+H4 = 4
+
+# NAT all forwarded traffic going out through the tunnel.
+# init.sh already handles FORWARD rules, so only MASQUERADE is needed here.
+PostUp   = iptables -t nat -A POSTROUTING -o awg0 -j MASQUERADE
+PostDown = iptables -t nat -D POSTROUTING -o awg0 -j MASQUERADE
+
+[Peer]
+PublicKey = <server-public-key>
+Endpoint = <host>:<port>
+AllowedIPs = 0.0.0.0/0
+PersistentKeepalive = 25
