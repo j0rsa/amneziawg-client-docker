@@ -12,7 +12,76 @@ env:
   IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/amneziawg-client
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build test image (amd64 only)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64
+          push: false
+          load: true
+          tags: amneziawg-test:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Verify iptables symlinks point to legacy
+        run: |
+          docker run --rm amneziawg-test:ci sh -c "
+            iptables --version | grep -q legacy || { echo 'FAIL: iptables is not legacy'; exit 1; }
+            iptables-restore --version | grep -q legacy || { echo 'FAIL: iptables-restore is not legacy'; exit 1; }
+            echo 'OK: iptables and iptables-restore both point to legacy'
+          "
+
+      - name: Smoke test - awg-quick up with dummy config
+        run: |
+          sudo apt-get install -y wireguard-tools -q
+          PRIVATE_KEY=$(wg genkey)
+          PEER_KEY=$(wg genkey | wg pubkey)
+          mkdir -p /tmp/awg-config
+          cat > /tmp/awg-config/test.conf <<EOF
+          [Interface]
+          PrivateKey = $PRIVATE_KEY
+          Address = 10.99.99.1/32
+          DNS = 1.1.1.1
+
+          [Peer]
+          PublicKey = $PEER_KEY
+          Endpoint = 127.0.0.1:51820
+          AllowedIPs = 0.0.0.0/0
+          EOF
+
+          docker run -d --name awg-smoke \
+            --privileged \
+            --cap-add NET_ADMIN \
+            --device /dev/net/tun \
+            --sysctl net.ipv4.conf.all.src_valid_mark=1 \
+            -v /tmp/awg-config:/config:ro \
+            amneziawg-test:ci
+
+          sleep 5
+          docker logs awg-smoke 2>&1 | tee /tmp/awg-smoke.log
+          docker stop awg-smoke
+
+          if grep -qE "iptables.*command not found|iptables-restore.*command not found|Could not fetch rule set" /tmp/awg-smoke.log; then
+            echo "FAIL: iptables errors detected in logs"
+            exit 1
+          fi
+          if ! grep -q "awg interface" /tmp/awg-smoke.log; then
+            echo "FAIL: container did not start up"
+            exit 1
+          fi
+          echo "PASS: no iptables errors, interface came up"
+
   build-and-push:
+    needs: test
     runs-on: ubuntu-latest
     permissions:
       contents: read

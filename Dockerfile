@@ -29,6 +29,10 @@ RUN apk --no-cache add \
     bash \
     openresolv \
     dumb-init \
+    && ln -sf /sbin/iptables-legacy /sbin/iptables \
+    && ln -sf /sbin/iptables-legacy-restore /sbin/iptables-restore \
+    && ln -sf /sbin/ip6tables-legacy /sbin/ip6tables \
+    && ln -sf /sbin/ip6tables-legacy-restore /sbin/ip6tables-restore \
     && apk --no-cache add --virtual .build-deps \
     dpkg \
     wget \
