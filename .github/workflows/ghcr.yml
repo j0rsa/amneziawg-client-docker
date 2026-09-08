@@ -63,12 +63,12 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Verify iptables symlinks point to legacy
+      - name: Verify iptables wrappers are no-ops
         run: |
           docker run --rm --entrypoint sh amneziawg-test:ci -c "
-            iptables --version | grep -q legacy || { echo 'FAIL: iptables is not legacy'; exit 1; }
-            iptables-restore --version | grep -q legacy || { echo 'FAIL: iptables-restore is not legacy'; exit 1; }
-            echo 'OK: iptables and iptables-restore both point to legacy'
+            iptables -A FORWARD -j ACCEPT || { echo 'FAIL: iptables wrapper did not exit 0'; exit 1; }
+            echo '[test]' | iptables-restore || { echo 'FAIL: iptables-restore wrapper did not exit 0'; exit 1; }
+            echo 'OK: iptables and iptables-restore are no-ops'
           "
 
       - name: Smoke test - awg-quick up with dummy config

@@ -29,10 +29,14 @@ RUN apk --no-cache add \
     bash \
     openresolv \
     dumb-init \
-    && ln -sf "$(which iptables-legacy)" /usr/local/bin/iptables \
-    && ln -sf "$(which iptables-legacy-restore)" /usr/local/bin/iptables-restore \
-    && ln -sf "$(which ip6tables-legacy)" /usr/local/bin/ip6tables \
-    && ln -sf "$(which ip6tables-legacy-restore)" /usr/local/bin/ip6tables-restore \
+    && printf '#!/bin/sh\n# iptables kernel modules unavailable on restricted kernels (e.g. Synology)\n# The WireGuard tunnel works without them; only NAT/FORWARD rules are skipped.\nexit 0\n' \
+       > /usr/local/bin/iptables && chmod +x /usr/local/bin/iptables \
+    && printf '#!/bin/sh\ncat > /dev/null\nexit 0\n' \
+       > /usr/local/bin/iptables-restore && chmod +x /usr/local/bin/iptables-restore \
+    && printf '#!/bin/sh\nexit 0\n' \
+       > /usr/local/bin/ip6tables && chmod +x /usr/local/bin/ip6tables \
+    && printf '#!/bin/sh\ncat > /dev/null\nexit 0\n' \
+       > /usr/local/bin/ip6tables-restore && chmod +x /usr/local/bin/ip6tables-restore \
     && apk --no-cache add --virtual .build-deps \
     dpkg \
     wget \
