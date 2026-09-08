@@ -25,7 +25,7 @@ ARG AWGTOOLS_RELEASE=1.0.20250706
 # runtime & build deps
 RUN apk --no-cache add \
     iproute2 \
-    iptables \
+    iptables-legacy \
     bash \
     openresolv \
     dumb-init \
