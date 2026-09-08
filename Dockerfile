@@ -29,10 +29,10 @@ RUN apk --no-cache add \
     bash \
     openresolv \
     dumb-init \
-    && ln -sf /sbin/iptables-legacy /sbin/iptables \
-    && ln -sf /sbin/iptables-legacy-restore /sbin/iptables-restore \
-    && ln -sf /sbin/ip6tables-legacy /sbin/ip6tables \
-    && ln -sf /sbin/ip6tables-legacy-restore /sbin/ip6tables-restore \
+    && ln -sf "$(which iptables-legacy)" /usr/local/bin/iptables \
+    && ln -sf "$(which iptables-legacy-restore)" /usr/local/bin/iptables-restore \
+    && ln -sf "$(which ip6tables-legacy)" /usr/local/bin/ip6tables \
+    && ln -sf "$(which ip6tables-legacy-restore)" /usr/local/bin/ip6tables-restore \
     && apk --no-cache add --virtual .build-deps \
     dpkg \
     wget \
