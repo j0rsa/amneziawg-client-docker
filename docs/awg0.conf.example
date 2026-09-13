@@ -16,9 +16,9 @@ H3 = 3
 H4 = 4
 
 # NAT all forwarded traffic going out through the tunnel.
-# init.sh already handles FORWARD rules, so only MASQUERADE is needed here.
-PostUp   = iptables -t nat -A POSTROUTING -o awg0 -j MASQUERADE
-PostDown = iptables -t nat -D POSTROUTING -o awg0 -j MASQUERADE
+# %i is substituted with the interface name (filename without .conf).
+PostUp   = iptables -t nat -A POSTROUTING -o %i -j MASQUERADE
+PostDown = iptables -t nat -D POSTROUTING -o %i -j MASQUERADE
 
 [Peer]
 PublicKey = <server-public-key>

@@ -1,20 +1,38 @@
+# Option A — container loads the tun module automatically on first start
+# (survives DSM reboots without a boot task; costs CAP_SYS_MODULE)
 services:
   amneziawg-client:
     image: ghcr.io/j0rsa/amneziawg-client:latest
     container_name: amneziawg-client
     restart: always
-    # network_mode: host
+    network_mode: host
     cap_add:
       - NET_ADMIN
+      # SYS_MODULE lets the container run insmod/modprobe to load tun.ko from
+      # the host's /lib/modules. Remove it (and the /lib/modules volume) if you
+      # prefer to load the module manually — see Option B below.
+      - SYS_MODULE
     devices:
       - /dev/net/tun:/dev/net/tun
     volumes:
       # Put your .conf here; filename becomes interface name (spb.conf → spb)
       - /volume1/docker/awg:/config:ro
-    # sysctls only matter if you use a non-host network; with network_mode: host they're ignored
-    sysctls:
-      - net.ipv4.ip_forward=1
-      - net.ipv4.conf.all.src_valid_mark=1
+      # Host kernel modules — needed so the container can load tun.ko via modprobe.
+      # Remove if not using SYS_MODULE (Option B).
+      - /lib/modules:/lib/modules:ro
+
+# Option B — load tun.ko manually on the host before starting the container
+#
+# 1. SSH into the NAS and run:
+#      sudo insmod /lib/modules/tun.ko
+#      ls /dev/net/tun      # should appear
+#
+# 2. Remove the SYS_MODULE cap_add and the /lib/modules volume above, then:
+#      docker compose up -d
+#
+# 3. To survive reboots, add a Scheduled Task → Triggered task → Boot-up in
+#    DSM Control Panel that runs:
+#      insmod /lib/modules/tun.ko
 
 # Example /volume1/docker/awg/spb.conf:
 #

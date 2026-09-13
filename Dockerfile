@@ -29,13 +29,13 @@ RUN apk --no-cache add \
     bash \
     openresolv \
     dumb-init \
-    && printf '#!/bin/sh\n# iptables kernel modules unavailable on restricted kernels (e.g. Synology)\n# The WireGuard tunnel works without them; only NAT/FORWARD rules are skipped.\nexit 0\n' \
+    && printf '#!/bin/sh\n/sbin/iptables-legacy "$@" 2>/dev/null || { echo "[!] iptables unavailable (kernel missing nf_tables/iptables modules) — skipping"; exit 0; }\n' \
        > /usr/local/bin/iptables && chmod +x /usr/local/bin/iptables \
-    && printf '#!/bin/sh\ncat > /dev/null\nexit 0\n' \
+    && printf '#!/bin/sh\n/sbin/iptables-legacy-restore "$@" 2>/dev/null || { echo "[!] iptables-restore unavailable — skipping"; cat > /dev/null; exit 0; }\n' \
        > /usr/local/bin/iptables-restore && chmod +x /usr/local/bin/iptables-restore \
-    && printf '#!/bin/sh\nexit 0\n' \
+    && printf '#!/bin/sh\n/sbin/ip6tables-legacy "$@" 2>/dev/null || { echo "[!] ip6tables unavailable — skipping"; exit 0; }\n' \
        > /usr/local/bin/ip6tables && chmod +x /usr/local/bin/ip6tables \
-    && printf '#!/bin/sh\ncat > /dev/null\nexit 0\n' \
+    && printf '#!/bin/sh\n/sbin/ip6tables-legacy-restore "$@" 2>/dev/null || { echo "[!] ip6tables-restore unavailable — skipping"; cat > /dev/null; exit 0; }\n' \
        > /usr/local/bin/ip6tables-restore && chmod +x /usr/local/bin/ip6tables-restore \
     && apk --no-cache add --virtual .build-deps \
     dpkg \

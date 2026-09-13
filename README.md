@@ -4,6 +4,28 @@ Run an AmneziaWG peer in a Docker container using the **userspace** `amneziawg-g
 
 Allows routing of specific Docker networks or the entire `host` network.
 
+### Synology prerequisites
+
+Synology DSM does not load the `tun` kernel module automatically. Without it the container exits with:
+
+```
+ERROR: /dev/net/tun does not exist and could not be loaded automatically.
+```
+
+Use `docs/synology-compose.yml` as your starting point. It runs with `network_mode: host` (simplest routing — no sysctl tweaks needed) and offers two approaches for the tun module:
+
+**Option A — automatic (recommended):** Add `CAP_SYS_MODULE` and mount `/lib/modules:/lib/modules:ro`. The container loads `tun.ko` itself on every start, so it survives DSM reboots without any manual step. This is the default in `docs/synology-compose.yml`.
+
+**Option B — manual:** Remove `SYS_MODULE` and the `/lib/modules` volume. SSH into the NAS and run:
+
+```bash
+sudo insmod /lib/modules/tun.ko   # "File exists" is fine — already loaded
+```
+
+Then add a **Scheduled Task → Triggered task → Boot-up** in DSM Control Panel running that line as root so it persists across reboots.
+
+> **Note:** After changing `devices:` or `volumes:` you must **recreate** the container (`docker compose up -d` with `--force-recreate`, or stop → delete → up). A plain restart does not re-evaluate those fields. Synology's Container Manager GUI wizard cannot add device mappings — use a **Project** (compose file) instead.
+
 ### Setup
 
 1. Install Docker if you haven't yet:

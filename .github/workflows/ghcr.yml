@@ -63,13 +63,24 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Verify iptables wrappers are no-ops
+      - name: Verify iptables wrappers exit 0 on hosts without iptables modules
         run: |
           docker run --rm --entrypoint sh amneziawg-test:ci -c "
             iptables -A FORWARD -j ACCEPT || { echo 'FAIL: iptables wrapper did not exit 0'; exit 1; }
             echo '[test]' | iptables-restore || { echo 'FAIL: iptables-restore wrapper did not exit 0'; exit 1; }
-            echo 'OK: iptables and iptables-restore are no-ops'
+            echo 'OK: iptables wrappers exited 0'
           "
+
+      - name: Verify container exits clearly when /dev/net/tun is absent
+        run: |
+          # No --device /dev/net/tun: container sees no tun device even on this host
+          docker run --rm --cap-add NET_ADMIN amneziawg-test:ci > /tmp/awg-notun.log 2>&1 || true
+          if ! grep -q "/dev/net/tun does not exist" /tmp/awg-notun.log; then
+            echo "FAIL: expected preflight message about missing /dev/net/tun"
+            cat /tmp/awg-notun.log
+            exit 1
+          fi
+          echo "PASS: container exited with clear /dev/net/tun error"
 
       - name: Smoke test - awg-quick up with dummy config
         run: |
@@ -92,15 +103,15 @@ jobs:
           docker logs awg-smoke 2>&1 | tee /tmp/awg-smoke.log
           docker stop awg-smoke
 
-          if grep -qE "iptables.*command not found|iptables-restore.*command not found|Could not fetch rule set" /tmp/awg-smoke.log; then
-            echo "FAIL: iptables errors detected in logs"
+          if grep -qE "command not found|Could not fetch rule set" /tmp/awg-smoke.log; then
+            echo "FAIL: unexpected errors in logs"
             exit 1
           fi
           if ! grep -q "awg interface" /tmp/awg-smoke.log; then
             echo "FAIL: container did not start up"
             exit 1
           fi
-          echo "PASS: no iptables errors, interface came up"
+          echo "PASS: interface came up cleanly"
 
       # amd64 layers are already in the buildx cache from the test build above.
       - name: Build and push multi-arch images
